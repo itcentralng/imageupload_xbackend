@@ -1,0 +1,7 @@
+*.pyc
+*.pyo
+.env
+imageupload/
+__pycache__/
+.vscode/
+venv/
