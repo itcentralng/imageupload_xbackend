@@ -1,5 +1,5 @@
 import os
-from flask import Flask, flash, request, redirect, url_for, jsonify
+from flask import Flask, flash, request, redirect, url_for, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 UPLOAD_FOLDER = 'C:\\Users\\TEDDY\\Desktop\\UploadFiles'
@@ -34,6 +34,12 @@ def upload_file():
             file.save(save_path)
             return jsonify({"success":"image uploaded"}) , 200
         
+
+@app.route('/imagepicker/<filename>', methods=["GET"])
+def serve_image(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
