@@ -22,12 +22,16 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+@app.route('/' , methods=['GET'])
+def imagehome():
+    return jsonify({"message":"Welcome to the image backend!!"}), 200
 @app.route('/tweetimage', methods=['GET', 'POST'])
 def tweetuploadfile():
     if request.method == 'POST':
         # check if the post request has the file part
         urls = []
-        file = request.files.getlist('file')
+        file = request.files.get('file')
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
         if file.filename == '':
