@@ -34,7 +34,7 @@ def tweetuploadfile():
         file = request.files.get('file')
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
-        if file.filename == '':
+        if file.filename.strip() == '':
             flash('No selected file')
             return jsonify({"Message":"Sorry no selected file"}), 400
             
@@ -56,9 +56,9 @@ def profileuploadfile():
         file = request.files.get('file')
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
-        if file.filename == '':
+        if file.filename.strip() == '':
             flash('No selected file')
-            return jsonify({"Message":"Sorry no selected file"}), 400
+            return jsonify({"Message":f"Sorry no selected file {str(file)}"}), 400
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
@@ -77,7 +77,7 @@ def coverprofileupoadfile():
 
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
-        if file.filename == '':
+        if file.filename.strip() == '':
             flash('No selected file')
             return jsonify({"Message":"Sorry no selected file"}), 400
 
