@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-UPLOAD_FOLDER_TWEET = os.getenv("UPLOAD_DEST_TWEET")
-UPLOAD_FOLDER_PROFILE = os.getenv("UPLOAD_DEST_PROFILE")
-UPLOAD_FOLDER_COVERPROFILE = os.getenv("UPLOAD_DEST_COVERPHOTO")
+UPLOAD_FOLDER_TWEET = os.path.join("/tmp", os.getenv("UPLOAD_DEST_TWEET"))
+UPLOAD_FOLDER_PROFILE = os.path.join("/tmp", os.getenv("UPLOAD_DEST_PROFILE"))
+UPLOAD_FOLDER_COVERPROFILE = os.path.join("/tmp", os.getenv("UPLOAD_DEST_COVERPHOTO"))
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -26,47 +26,135 @@ def allowed_file(filename):
 @app.route('/' , methods=['GET'])
 def imagehome():
     return jsonify({"message":"Welcome to the image backend!!"}), 200
-@app.route('/tweetimage', methods=['GET', 'POST'])
+@app.route('/tweetimage', methods=['POST'])
 def tweetuploadfile():
-    if request.method == 'POST':
-        # check if the post request has the file part
-        urls = []
-        file = request.files.get('file')
-        # If the user does not select a file, the browser submits an
-        # empty file without a filename.
-        if file.filename.strip() == '':
-            flash('No selected file')
-            return jsonify({"Message":"Sorry no selected file"}), 400
-            
+    try:
+        if 'files' not in request.files:
+            return jsonify({
+                "status": "failed",
+                "message": "No files part in request"
+            }), 400
 
-        if file and allowed_file(file.filename):
+        files = request.files.getlist('files')
+
+        if not files or len(files) == 0:
+            return jsonify({
+                "status": "failed",
+                "message": "No files provided"
+            }), 400
+
+        upload_dir = app.config.get('UPLOAD_FOLDER_TWEET')
+
+        if not upload_dir:
+            return jsonify({
+                "status": "failed",
+                "message": "Upload directory not configured"
+            }), 500
+
+        os.makedirs(upload_dir, exist_ok=True)
+
+        urls = []
+
+        for file in files:
+            if not file or file.filename.strip() == "":
+                continue
+
+            if not allowed_file(file.filename):
+                continue
+
             filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER_TWEET'], filename)
+
+            # prevent filename collision
+            # unique_name = f"{uuid.uuid4().hex}_{filename}"
+
+            save_path = os.path.join(upload_dir, filename)
             file.save(save_path)
+
             urls.append(f"/tweetimage/{filename}")
 
-        return jsonify({"status":"success", "message":"tweet image uploaded", "urls":urls}) , 200
-    
+        if len(urls) == 0:
+            return jsonify({
+                "status": "failed",
+                "message": "No valid images uploaded"
+            }), 400
+
+        return jsonify({
+            "status": "success",
+            "message": "Tweet images uploaded",
+            "urls": urls
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "failed",
+            "message": "Error uploading files",
+            "reason": str(e)
+        }), 500
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profileuploadfile():
-    if request.method == 'POST':
-        # check if the post request has the file part
-        profile_url: str = ""
-        file = request.files.get('file')
-        # If the user does not select a file, the browser submits an
-        # empty file without a filename.
-        if file.filename.strip() == '':
-            flash('No selected file')
-            return jsonify({"Message":f"Sorry no selected file {str(file)}"}), 400
+    try:
+        if 'files' not in request.files:
+            return jsonify({
+                "status": "failed",
+                "message": "No files part in request"
+            }), 400
 
-        if file and allowed_file(file.filename):
+        files = request.files.get('file')
+
+        if not files or len(files) == 0:
+            return jsonify({
+                "status": "failed",
+                "message": "No files provided"
+            }), 400
+
+        upload_dir = app.config.get('UPLOAD_FOLDER_PROFILE')
+
+        if not upload_dir:
+            return jsonify({
+                "status": "failed",
+                "message": "Upload directory not configured"
+            }), 500
+
+        os.makedirs(upload_dir, exist_ok=True)
+
+        urls = []
+
+        for file in files:
+            if not file or file.filename.strip() == "":
+                continue
+
+            if not allowed_file(file.filename):
+                continue
+
             filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER_PROFILE'], filename)
+
+            # prevent filename collision
+            # unique_name = f"{uuid.uuid4().hex}_{filename}"
+
+            save_path = os.path.join(upload_dir, filename)
             file.save(save_path)
-            profile_url = (f"/profileimg/{filename}")
-        return jsonify({"status":"success", "message":"profile uploaded", "urls":profile_url}) , 200
-    
+
+            urls.append(f"/tweetimage/{filename}")
+
+        if len(urls) == 0:
+            return jsonify({
+                "status": "failed",
+                "message": "No valid images uploaded"
+            }), 400
+
+        return jsonify({
+            "status": "success",
+            "message": "Tweet images uploaded",
+            "urls": urls
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "failed",
+            "message": "Error uploading files",
+            "reason": str(e)
+        }), 500
 
 @app.route('/coverimage', methods=['GET', 'POST'])
 def coverprofileupoadfile():
@@ -83,7 +171,7 @@ def coverprofileupoadfile():
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER_COVERPROFILE'], filename)
+            save_path = os.path.join(app.config.get('UPLOAD_FOLDER_COVERPROFILE'), filename)
             file.save(save_path)
             coverimage_url = (f"/coverimage/{filename}")
         return jsonify({"status":"success", "message":"coverprofile uploaded", "urls":coverimage_url}) , 200
@@ -94,7 +182,7 @@ def tweet_serve(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER_TWEET'], filename)
 
 #--- This is for the profile pic
-@app.route('/profile/<filename>', methods=["GET"])
+@app.route('/profileimg/<filename>', methods=["GET"])
 def profile_serve(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER_PROFILE'], filename)
 
