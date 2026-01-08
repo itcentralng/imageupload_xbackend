@@ -5,6 +5,3 @@ imageupload/
 __pycache__/
 .vscode/
 venv/
-static/media/*
-static/profile/*
-static/coverprofile/*
